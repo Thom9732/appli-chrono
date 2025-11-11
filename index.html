@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Race Timing Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#2b6cee",
+        "background-dark": "#101622",
+        "status-idle": "#2b6cee",
+        "status-running": "#00FF7F",
+        "status-finished": "#FFD700",
+      },
+      fontFamily: {
+        "display": ["Lexend", "sans-serif"],
+        "mono": ["Roboto Mono", "monospace"]
+      },
+    },
+  },
+}
+</script>
+
+<style>
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.rider-number {
+  font-size: min(20vw, 14vh);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
+<!-- PWA : manifest + thème -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3f51b5">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Enregistrement du Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker enregistré'))
+        .catch(err => console.error('Erreur SW :', err));
+    });
+  }
+</script>
+</head>
+
+<body class="bg-background-dark text-white font-display">
+<div class="flex flex-col min-h-screen">
+
+<header class="flex items-center justify-between border-b border-gray-700 px-8 py-3">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-3xl text-primary">timer</span>
+    <h1 class="text-xl font-bold">Race Timing Control</h1>
+  </div>
+</header>
+
+<main class="flex-grow flex flex-col items-center justify-center p-6 relative overflow-hidden">
+  <div id="cards" class="grid grid-cols-2 grid-rows-2 gap-6 w-full max-w-[1400px] h-[calc(100vh-220px)]"></div>
+
+  <!-- Boutons Start / Reset -->
+  <div class="mt-6 flex justify-center gap-4">
+    <button id="start-btn" class="flex flex-col items-center justify-center w-48 cursor-pointer rounded-lg h-16 px-6 bg-primary text-white hover:bg-primary/90 transition-colors">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined">play_arrow</span>
+        <span class="text-lg font-bold">Start</span>
+      </div>
+      <span class="text-xs text-white/80">Initiate synchronized timer</span>
+    </button>
+    <button id="reset-btn" class="flex flex-col items-center justify-center w-48 cursor-pointer rounded-lg h-16 px-6 bg-gray-500 text-white hover:bg-gray-500/90 transition-colors">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined">restart_alt</span>
+        <span class="text-lg font-bold">Reset</span>
+      </div>
+      <span class="text-xs text-white/80">Reset all chronometers</span>
+    </button>
+  </div>
+
+  <!-- Menu Rider -->
+  <div class="mt-10 border-t border-gray-700 pt-8">
+    <div class="relative inline-block text-left group">
+      <button id="rider-menu-btn" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white/10 px-4 py-2.5 text-base font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-600/80 hover:bg-white/20" type="button">
+        Rider
+        <span class="material-symbols-outlined -mr-1 h-5 w-5 text-gray-400">expand_more</span>
+      </button>
+      <div id="rider-menu" class="absolute bottom-full left-0 mb-2 z-10 w-64 origin-bottom-left rounded-md bg-[#1c2435] shadow-lg ring-1 ring-black ring-opacity-5 hidden">
+        <div class="py-2 px-3 space-y-3" id="rider-inputs"></div>
+        <div class="border-t border-gray-600/80 pt-3 mt-3 px-3 pb-3">
+          <button id="validate-riders" class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md h-9 px-4 bg-primary text-white text-sm font-semibold hover:bg-primary/90">
+            <span class="material-symbols-outlined text-base">check_circle</span>
+            <span>Validate</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panneau latéral -->
+  <div id="side-panel" class="fixed top-0 right-0 h-full w-96 bg-[#1c2435] shadow-2xl transform translate-x-full transition-transform duration-300 overflow-y-auto z-50">
+    <div class="flex justify-between items-center p-4 border-b border-gray-600">
+      <h2 id="panel-title" class="text-lg font-bold">Rider details</h2>
+      <button id="close-panel" class="text-gray-300 hover:text-white material-symbols-outlined">close</button>
+    </div>
+    <div id="panel-content" class="p-4 font-mono space-y-2 text-gray-300"></div>
+  </div>
+</main>
+</div>
+
+<script>
+const cardsContainer = document.getElementById("cards");
+const sidePanel = document.getElementById("side-panel");
+const panelTitle = document.getElementById("panel-title");
+const panelContent = document.getElementById("panel-content");
+const closePanel = document.getElementById("close-panel");
+const validateBtn = document.getElementById("validate-riders");
+const riderMenuBtn = document.getElementById("rider-menu-btn");
+const riderMenu = document.getElementById("rider-menu");
+const riderInputsContainer = document.getElementById("rider-inputs");
+
+let riders = [12,5,33,99];
+let startTime = null;
+let intervalId = null;
+let isRunning = false;
+let laps = [[],[],[],[]];
+let lastLapStart = [0,0,0,0];
+
+// --- Crée les champs du menu rider ---
+function renderRiderInputs() {
+  riderInputsContainer.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const div = document.createElement("div");
+    div.className = "flex items-center justify-between";
+    div.innerHTML = `
+      <label for="rider-${i}-input" class="text-sm">Rider ${i + 1}</label>
+      <input id="rider-${i}-input" type="number" value="${riders[i]}" class="w-20 rounded bg-white/10 py-1.5 text-center text-white border border-gray-600"/>
+    `;
+    riderInputsContainer.appendChild(div);
+  }
+}
+renderRiderInputs();
+
+// --- Menu toggle ---
+riderMenuBtn.addEventListener("click", () => {
+  riderMenu.classList.toggle("hidden");
+});
+document.addEventListener("click", (e) => {
+  if (!riderMenu.contains(e.target) && !riderMenuBtn.contains(e.target)) {
+    riderMenu.classList.add("hidden");
+  }
+});
+
+function formatTime(ms){
+  const total = Math.floor(ms / 10);
+  const centi = total % 100;
+  const sec = Math.floor(total / 100) % 60;
+  const min = Math.floor(total / 6000);
+  return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(centi).padStart(2,'0')}`;
+}
+
+function createCard(index){
+  const card = document.createElement("div");
+  card.className = "rider-card bg-gray-800/20 border border-gray-700 rounded-xl p-6 flex flex-col justify-between relative overflow-hidden cursor-pointer";
+  card.innerHTML = `
+    <span class="rider-number">${riders[index]}</span>
+    <div class="flex justify-between z-10">
+      <div><p class="text-[#92a4c9] text-base font-medium">Rider ${index+1}</p>
+        <div class="flex items-center gap-2">
+          <div class="size-3 rounded-full bg-status-idle"></div>
+          <p class="text-sm text-white status-text">Status: Idle</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <p class="text-xs text-gray-400">Best</p>
+        <p class="text-white text-lg font-bold font-mono best-time">00:00.00</p>
+        <p class="text-xs text-gray-400 mt-2">Current</p>
+        <p class="text-status-running text-lg font-mono live-time">00:00.00</p>
+      </div>
+    </div>
+    <div class="laps-list font-mono text-gray-300 text-sm space-y-1 mt-4 z-10"></div>
+  `;
+  card.addEventListener("click", () => {
+    if(isRunning){
+      const now = Date.now();
+      const lapTime = now - lastLapStart[index];
+      laps[index].unshift(lapTime);
+      lastLapStart[index] = now;
+      updateLapsDisplay(index);
+    } else if(laps[index].length>0){
+      openPanel(index);
+    }
+  });
+  cardsContainer.appendChild(card);
+}
+
+function updateLapsDisplay(index){
+  const card = cardsContainer.children[index];
+  const list = card.querySelector(".laps-list");
+  const best = Math.min(...laps[index]);
+  list.innerHTML = "";
+  laps[index].forEach((t,i)=>{
+    const color = t===best ? "text-status-running" : "text-gray-300";
+    list.innerHTML += `<div class="${color}">${i+1}. ${formatTime(t)}</div>`;
+  });
+  if(best!==Infinity) card.querySelector(".best-time").textContent = formatTime(best);
+}
+
+function openPanel(index){
+  panelTitle.textContent = `Rider ${index+1} - #${riders[index]}`;
+  const best = Math.min(...laps[index]);
+  panelContent.innerHTML = laps[index].map((t,i)=>{
+    const color = t===best ? "text-status-running" : "text-gray-300";
+    return `<div class="${color}">${i+1}. ${formatTime(t)}</div>`;
+  }).join("") || "<p>No laps</p>";
+  sidePanel.classList.remove("translate-x-full");
+}
+closePanel.addEventListener("click", ()=> sidePanel.classList.add("translate-x-full"));
+
+validateBtn.addEventListener("click", ()=>{
+  for(let i=0;i<4;i++){
+    const val = parseInt(document.getElementById(`rider-${i}-input`).value) || 0;
+    riders[i] = val;
+  }
+  document.querySelectorAll(".rider-number").forEach((el,i)=>el.textContent = riders[i]);
+  riderMenu.classList.add("hidden");
+});
+
+for(let i=0;i<4;i++) createCard(i);
+
+function updateLiveTimes(){
+  const now = Date.now();
+  for(let i=0;i<4;i++){
+    if(isRunning){
+      const live = now - lastLapStart[i];
+      const el = cardsContainer.children[i].querySelector(".live-time");
+      el.textContent = formatTime(live);
+    }
+  }
+}
+
+const startBtn = document.getElementById("start-btn");
+const resetBtn = document.getElementById("reset-btn");
+
+startBtn.addEventListener("click", ()=>{
+  if(!isRunning){
+    startTime = Date.now();
+    lastLapStart = [startTime,startTime,startTime,startTime];
+    isRunning = true;
+    intervalId = setInterval(updateLiveTimes,10);
+    startBtn.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined">stop</span>
+        <span class="text-lg font-bold">Stop</span>
+      </div>
+      <span class="text-xs text-white/80">Stop all chronometers</span>`;
+    startBtn.classList.replace("bg-primary","bg-red-600");
+  } else {
+    clearInterval(intervalId);
+    isRunning = false;
+    startBtn.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined">play_arrow</span>
+        <span class="text-lg font-bold">Start</span>
+      </div>
+      <span class="text-xs text-white/80">Initiate synchronized timer</span>`;
+    startBtn.classList.replace("bg-red-600","bg-primary");
+  }
+});
+
+resetBtn.addEventListener("click", ()=>{
+  clearInterval(intervalId);
+  isRunning=false;
+  startTime=null;
+  laps=[[],[],[],[]];
+  lastLapStart=[0,0,0,0];
+  document.querySelectorAll(".laps-list").forEach(el=>el.innerHTML="");
+  document.querySelectorAll(".best-time").forEach(el=>el.textContent="00:00.00");
+  document.querySelectorAll(".live-time").forEach(el=>el.textContent="00:00.00");
+  startBtn.innerHTML = `
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined">play_arrow</span>
+      <span class="text-lg font-bold">Start</span>
+    </div>
+    <span class="text-xs text-white/80">Initiate synchronized timer</span>`;
+  startBtn.classList.remove("bg-red-600");
+  startBtn.classList.add("bg-primary");
+});
+</script>
+</body>
+</html>
