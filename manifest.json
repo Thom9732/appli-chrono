@@ -1,6 +1,6 @@
 {
   "name": "Chrono4Pilotes",
-  "short_name": "MonApp",
+  "short_name": "Chrono4Pilotes",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
