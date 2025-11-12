@@ -1,7 +1,7 @@
 {
   "name": "Chrono4Pilotes",
   "short_name": "Chrono4Pilotes",
-  "start_url": "/index.html",
+  "start_url": "/appli-chrono/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3f51b5",
