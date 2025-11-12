@@ -215,19 +215,22 @@ function updateLapsDisplay(index){
   const best = Math.min(...laps[index]);
   list.innerHTML = "";
   laps[index].forEach((t,i)=>{
-    const color = t===best ? "text-status-running" : "text-gray-300";
-    list.innerHTML += `<div class="${color}">${i+1}. ${formatTime(t)}</div>`;
-  });
+  const lapNumber = laps[index].length - i; // ✅ numéro correct dans l’ordre chronologique
+  const color = t===best ? "text-status-running" : "text-gray-300";
+  list.innerHTML += `<div class="${color}">${lapNumber}. ${formatTime(t)}</div>`;
+});
   if(best!==Infinity) card.querySelector(".best-time").textContent = formatTime(best);
 }
 
 function openPanel(index){
   panelTitle.textContent = `Rider ${index+1} - #${riders[index]}`;
   const best = Math.min(...laps[index]);
-  panelContent.innerHTML = laps[index].map((t,i)=>{
-    const color = t===best ? "text-status-running" : "text-gray-300";
-    return `<div class="${color}">${i+1}. ${formatTime(t)}</div>`;
-  }).join("") || "<p>No laps</p>";
+  const chronological = [...laps[index]].reverse();   // 1er tour en position 0
+panelContent.innerHTML = chronological.map((t, i) => {
+  const lapNumber = i + 1;                          // 1, 2, 3…
+  const color = t === best ? "text-status-running" : "text-gray-300";
+  return `<div class="${color}">${lapNumber}. ${formatTime(t)}</div>`;
+}).join("") || "<p>No laps</p>";
   sidePanel.classList.remove("translate-x-full");
 }
 closePanel.addEventListener("click", ()=> sidePanel.classList.add("translate-x-full"));
