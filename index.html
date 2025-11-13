@@ -179,20 +179,20 @@ function createCard(index){
   card.className = "rider-card bg-gray-800/20 border border-gray-700 rounded-xl p-6 flex flex-col justify-between relative overflow-hidden cursor-pointer";
   card.innerHTML = `
     <span class="rider-number">${riders[index]}</span>
-    <div class="flex justify-between z-10">
-      <div><p class="text-[#92a4c9] text-base font-medium">Rider ${index+1}</p>
-        <div class="flex items-center gap-2">
-          <div class="size-3 rounded-full bg-status-idle"></div>
-          <p class="text-sm text-white status-text">Status: Idle</p>
-        </div>
-      </div>
-      <div class="text-right">
-        <p class="text-xs text-gray-400">Best</p>
-        <p class="text-white text-lg font-bold font-mono best-time">00:00.00</p>
-        <p class="text-xs text-gray-400 mt-2">Current</p>
-        <p class="text-status-running text-lg font-mono live-time">00:00.00</p>
-      </div>
-    </div>
+<div class="flex justify-between z-10">
+  <!-- coin gauche : numéro + best -->
+  <div>
+    <div class="text-xl font-bold text-white/80 mb-1">${index + 1}</div>
+    <div class="text-xs text-gray-400">Best</div>
+    <div class="text-white text-lg font-bold font-mono best-time">00:00.00</div>
+  </div>
+
+  <!-- coin droit : current -->
+  <div class="text-right">
+    <div class="text-xs text-gray-400">Current</div>
+    <div class="text-status-running text-lg font-mono live-time">00:00.00</div>
+  </div>
+</div>
     <div class="laps-list font-mono text-gray-300 text-sm space-y-1 mt-4 z-10"></div>
   `;
   card.addEventListener("click", () => {
