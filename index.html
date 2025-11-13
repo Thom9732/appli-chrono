@@ -197,7 +197,7 @@ function createCard(index){
 
     <!-- droite : current (sans centièmes) -->
     <div class="text-right">
-      <div class="text-xs text-gray-400">Lap&nbsp;</div>
+      <div class="text-xs text-gray-400">Lap&nbsp;&nbsp;</div>
       <div class="text-status-running text-lg font-mono live-time-short">00:00</div>
     </div>
   </div>
@@ -261,7 +261,7 @@ function updateLiveTimes(){
     if(isRunning){
       const live = now - lastLapStart[i];
       const el = cardsContainer.children[i].querySelector(".live-time-short");
-      el.textContent = formatShortTime(live) + '&nbsp;' ;
+      el.textContent = formatShortTime(live) + '"' ;
     }
   }
 }
