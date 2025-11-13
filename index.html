@@ -44,6 +44,19 @@ tailwind.config = {
   align-items: center;
   justify-content: center;
 }
+/* barre chrono : pas de cadre, pas d’animation */
+.text-status-running {        /* déjà défini, on réutilise la couleur */
+  font-family: "Roboto Mono", monospace;
+}
+.laps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  /* 5 lignes max : hauteur d’une ligne ≈ 1rem + gap */
+  max-height: calc(5 * 1rem + 4 * 0.25rem);
+  overflow: hidden;   /* pas de scrollbar, on coupe */
+}
+
 </style>
 <!-- PWA : manifest + thème -->
 <link rel="manifest" href="manifest.json">
@@ -133,8 +146,9 @@ const validateBtn = document.getElementById("validate-riders");
 const riderMenuBtn = document.getElementById("rider-menu-btn");
 const riderMenu = document.getElementById("rider-menu");
 const riderInputsContainer = document.getElementById("rider-inputs");
+const scrollElts = [];   // au même niveau que laps, startTime, etc.
 
-let riders = [12,5,33,99];
+let riders = [81,178,458,12];
 let startTime = null;
 let intervalId = null;
 let isRunning = false;
@@ -184,26 +198,27 @@ function createCard(index){
   const card = document.createElement("div");
   card.className = "rider-card bg-gray-800/20 border border-gray-700 rounded-xl p-6 flex flex-col justify-between relative overflow-hidden cursor-pointer";
   card.innerHTML = `
-  <span class="rider-number">${riders[index]}</span>
+    <span class="rider-number">${riders[index]}</span>
 
-  <!-- ligne unique en haut -->
-  <div class="flex justify-between items-start z-10">
-    <!-- gauche : numéro + best -->
-    <div>
-      <div class="text-xl font-bold text-white/80 mb-1">${index + 1}</div>
-      <div class="text-xs text-gray-400">Best</div>
-      <div class="text-white text-lg font-bold font-mono best-time">00:00.00</div>
-    </div>
+    <!-- ligne du haut -->
+    <div class="flex justify-between items-start z-10">
+      <div>
+        <div class="text-lg font-bold text-white/80 mb-1">${index + 1}</div>
+        <div class="text-xs text-gray-400">Best</div>
+        <div class="text-white text-lg font-bold font-mono best-time">00:00.00</div>
+      </div>
+          </div>
 
-    <!-- droite : current (sans centièmes) -->
-    <div class="text-right">
-      <div class="text-xs text-gray-400">Lap&nbsp;&nbsp;</div>
-      <div class="text-status-running text-lg font-mono live-time-short">00:00</div>
-    </div>
-  </div>
+    <!-- liste des tours -->
+    <div class="laps-list ..."></div>   <!-- 5 lignes max, pas de scroll -->
+<div class="mt-auto pt-2 text-center text-status-running font-mono text-lg"
+     id="scroll-${index}">00:00</div>
 
-  <div class="laps-list font-mono text-gray-300 text-sm space-y-1 mt-4 z-10"></div>
-`;
+    <!-- chrono fixe en bas -->
+    <div class="mt-auto pt-2 text-center text-status-running font-mono text-lg"
+         id="scroll-${index}">00:00</div>
+  `;
+
   card.addEventListener("click", () => {
     if(isRunning){
       const now = Date.now();
@@ -221,6 +236,7 @@ function createCard(index){
 function updateLapsDisplay(index){
   const card = cardsContainer.children[index];
   const list = card.querySelector(".laps-list");
+const maxShow = 5;
   const best = Math.min(...laps[index]);
   list.innerHTML = "";
   laps[index].forEach((t,i)=>{
@@ -253,15 +269,16 @@ validateBtn.addEventListener("click", ()=>{
   riderMenu.classList.add("hidden");
 });
 
-for(let i=0;i<4;i++) createCard(i);
+for(let i = 0; i < 4; i++) createCard(i);
+
+for(let i = 0; i < 4; i++) scrollElts[i] = document.getElementById(`scroll-${i}`);
 
 function updateLiveTimes(){
   const now = Date.now();
   for(let i=0;i<4;i++){
     if(isRunning){
       const live = now - lastLapStart[i];
-      const el = cardsContainer.children[i].querySelector(".live-time-short");
-      el.textContent = formatShortTime(live);
+      scrollElts[i].textContent = formatShortTime(live);
     }
   }
 }
@@ -304,6 +321,8 @@ resetBtn.addEventListener("click", ()=>{
   document.querySelectorAll(".laps-list").forEach(el=>el.innerHTML="");
   document.querySelectorAll(".best-time").forEach(el=>el.textContent="00:00.00");
   document.querySelectorAll(".live-time-short").forEach(el=>el.textContent="00:00");
+  // reset des barres de défilement
+  scrollElts.forEach(el => el.textContent = "00:00");
   startBtn.innerHTML = `
     <div class="flex items-center gap-2">
       <span class="material-symbols-outlined">play_arrow</span>
