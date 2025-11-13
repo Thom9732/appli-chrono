@@ -261,7 +261,7 @@ function updateLiveTimes(){
     if(isRunning){
       const live = now - lastLapStart[i];
       const el = cardsContainer.children[i].querySelector(".live-time-short");
-      el.textContent = formatShortTime(live) + '"' ;
+      el.textContent = formatShortTime(live);
     }
   }
 }
