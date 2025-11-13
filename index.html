@@ -197,7 +197,7 @@ function createCard(index){
 
     <!-- droite : current (sans centièmes) -->
     <div class="text-right">
-      <div class="text-xs text-gray-400">Lap</div>
+      <div class="text-xs text-gray-400">Lap&nbsp;</div>
       <div class="text-status-running text-lg font-mono live-time-short">00:00</div>
     </div>
   </div>
@@ -260,8 +260,8 @@ function updateLiveTimes(){
   for(let i=0;i<4;i++){
     if(isRunning){
       const live = now - lastLapStart[i];
-      const el = cardsContainer.children[i].querySelector(".live-time");
-      el.textContent = formatTime(live);
+      const el = cardsContainer.children[i].querySelector(".live-time-short");
+      el.textContent = formatShortTime(live) + '&nbsp;' ;
     }
   }
 }
@@ -303,7 +303,7 @@ resetBtn.addEventListener("click", ()=>{
   lastLapStart=[0,0,0,0];
   document.querySelectorAll(".laps-list").forEach(el=>el.innerHTML="");
   document.querySelectorAll(".best-time").forEach(el=>el.textContent="00:00.00");
-  document.querySelectorAll(".live-time").forEach(el=>el.textContent="00:00.00");
+  document.querySelectorAll(".live-time-short").forEach(el=>el.textContent="00:00");
   startBtn.innerHTML = `
     <div class="flex items-center gap-2">
       <span class="material-symbols-outlined">play_arrow</span>
